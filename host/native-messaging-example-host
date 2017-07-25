@@ -1,0 +1,204 @@
+#!/usr/local/bin/python
+def warn(*args, **kwargs):
+    pass
+import warnings
+warnings.warn = warn
+import cv2
+import sys
+import time
+#print 'running'
+#import pyautogui
+#print 'running'
+import dlib
+#print 'running'
+from sklearn.externals import joblib
+#print 'running'
+import numpy
+#print 'running'
+from EmoDetect.FeatureGen import *
+from skimage import io
+import struct
+import Queue
+#import threading
+#print 'running'
+
+
+#sleep = False
+
+def send_message(text):
+  # Write message size.
+  #print text
+  #print "converts to"
+  message = '{"text": "' + text + '"}'
+  #print message
+  sys.stdout.write(struct.pack('I', len(message)))
+  # Write the message itself.
+  sys.stdout.write(message)
+  sys.stdout.flush()
+
+
+emotions={ 1:"Anger", 2:"Contempt", 3:"Disgust", 4:"Fear", 5:"Happy", 6:"Sadness", 7:"Surprise"}
+
+FACE_SIZE_CUTDOWN = 100
+FACE_CUTOFF_PROP = 0.18
+
+faceCascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+eyeCascade = cv2.CascadeClassifier('haarcascade_eye.xml')
+CAP_FPS = 1
+
+video_capture = cv2.VideoCapture(0)
+video_capture.set(6, CAP_FPS)
+
+hasFace = True
+timeStamp = time.time()
+timeHold = 0.5
+isHappy = False
+happyBin = []
+
+landmark_path = "./EmoDetect/shape_predictor_68_face_landmarks.dat"
+#print "Initializing Dlib face Detector.."
+detector= dlib.get_frontal_face_detector()
+
+#print "Loading landmark identification data..."
+predictor= dlib.shape_predictor(landmark_path)
+
+#print "Loading trained data....."
+classify=joblib.load("./EmoDetect/traindata.pkl")
+pca = joblib.load("./EmoDetect/pcadata.pkl")
+
+def predictEmotion(frame):
+    img = frame
+    # print(im
+    # cv2.imwrite('temp.jpg', frame)
+    # img = io.imread('temp.jpg')
+    dets = detector(img, 1)
+
+    if len(dets) == 0:
+        return 'i hate open_cv '
+
+    p = []
+
+    for k, d in enumerate(dets):
+        shape = predictor(img, d)
+        landmarks=[]
+        for i in range(68):
+            landmarks.append(shape.part(i).x)
+            landmarks.append(shape.part(i).y)
+
+        landmarks = numpy.array(landmarks)
+
+        features=generateFeatures(landmarks)
+        if features is None:
+            return None
+        features= numpy.asarray(features)
+        pca_features=pca.transform(features)
+        emo_predicts=classify.predict(pca_features)
+    #     p.append(emotions[int(emo_predicts[0])])
+    # return 1 if 'Sadness' in p else None
+        return emotions[int(emo_predicts[0])]
+
+while True:
+    # Capture frame-by-frame
+    ret, frame = video_capture.read()
+    # frame = cv2.resize(frame, )
+    frame = cv2.resize(frame, None, fx = 0.5, fy = 0.5, interpolation = cv2.INTER_CUBIC)
+    hist, bins = numpy.histogram(frame.flatten(),256,[0,256])
+    cdf = hist.cumsum()
+    cdf_normalized = cdf * hist.max()/ cdf.max()
+    cdf_m = numpy.ma.masked_equal(cdf,0)
+    cdf_m = (cdf_m - cdf_m.min())*255/(cdf_m.max()-cdf_m.min())
+    cdf = numpy.ma.filled(cdf_m,0).astype('uint8')
+    frame = cdf[frame]
+    # equ = cv2.equalizeHist(frame)
+    # frame = numpy.hstack((img,equ))
+    frame = cv2.flip(frame, 1)
+
+
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    faces = faceCascade.detectMultiScale(
+        gray,
+        scaleFactor=1.1,
+        minNeighbors=4,
+        minSize=(30, 30),
+        flags=cv2.cv.CV_HAAR_SCALE_IMAGE
+    )
+
+    # eyes = eyeCascade.detectMultiScale(
+    #     gray,
+    #     scaleFactor=1.3,
+    #     minNeighbors=5,
+    #     minSize=(30, 30),
+    #     flags=cv2.cv.CV_HAAR_SCALE_IMAGE
+    # )
+
+    imgWidth = numpy.size(frame, 1)
+    imgHeight = numpy.size(frame, 0)
+
+    FACE_SIZE_CUTDOWN = FACE_CUTOFF_PROP * imgWidth
+
+    faces = filter(lambda t: t[2] > FACE_SIZE_CUTDOWN, faces)
+
+    if not list(faces):
+        if hasFace is False:
+            timeStamp = time.time()
+        if time.time() - timeStamp > timeHold and hasFace is True:
+            #print 'Pause!'
+            timeStamp = time.time()
+            hasFace = False
+            #pyautogui.press([' '])
+            send_message("faceOff")
+            #print()
+    else:
+        if hasFace is True:
+            timeStamp = time.time()
+        if time.time() - timeStamp > timeHold and hasFace is False:
+            #print 'Resume!'
+            timeStamp = time.time()
+            hasFace = True
+            #pyautogui.press([' '])
+            send_message("faceOn")
+            #print()
+
+    for (x, y, w, h) in faces:
+
+        yUp = 0 if y - 10 < 0 else y - 10
+        yDown = imgHeight if y + h + 10 > imgHeight else y + h + 10
+        xLeft = 0 if x - 10 < 0 else x - 10
+        xRight = imgWidth if x + w + 10 > imgWidth else x + w + 10
+        crop = frame[yUp:yDown, xLeft:xRight]
+        crop = cv2.resize(crop, None, fx = 0.25, fy = 0.25, interpolation = cv2.INTER_CUBIC)
+
+
+        cv2.imwrite('crops.jpg', crop)
+
+        # if predictEmotion(crop):
+        #     print('sad')
+        happyBin.append(predictEmotion(crop))
+        if len(happyBin) > 5:
+            happyBin.pop(0)
+        if len(filter(lambda x: x == "Happy", happyBin)) >= 3:
+            #print("happy!!!!!!!!!!!!")
+            send_message("happy")
+        # print predictEmotion(crop)
+
+    # Draw a rectangle around the faces
+    for (x, y, w, h) in faces:
+        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+    # for (x, y, w, h) in eyes:
+    #     cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+
+    # cv2.imwrite('badcase.jpg', frame)
+    # print predictEmotion(frame)
+
+    #Display the resulting frame
+    cv2.imshow('Video', frame)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# When everything is done, release the capture
+video_capture.release()
+cv2.destroyAllWindows()

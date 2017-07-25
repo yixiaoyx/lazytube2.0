@@ -1,0 +1,62 @@
+{
+    "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDcBHwzDvyBQ6bDppkIs9MP4ksKqCMyXQ/A52JivHZKh4YO/9vJsT3oaYhSpDCE9RPocOEQvwsHsFReW2nUEc6OLLyoCFFxIb7KkLGsmfakkut/fFdNJYh0xOTbSN8YvLWcqph09XAY2Y/f0AL7vfO1cuCqtkMt8hFrBGWxDdf9CQIDAQAB",
+    "background": {
+        "page": "background.html"
+    },
+
+    "content_scripts": [
+        {
+            "css": [
+                "css/content.css"
+            ],
+            "js": [
+                "js/content.js"
+            ],
+            "matches": [
+                "*://*.youtube.com/*"
+            ],
+            "run_at": "document_end"
+        },
+        {
+            "all_frames": true,
+            "js": [
+                "/js/jquery.js"
+            ],
+            "matches": [
+                "*://*/*"
+            ],
+            "run_at": "document_start"
+        }
+    ],
+    "description": "Lazytube pauses Youtube videos for you when your computer
+        no longer sees your face and resumes playing when you return",
+    "icons": {
+        "48": "images/icons/48x48.png",
+        "64": "images/icons/64x64.png",
+        "128": "images/icons/128x128.png",
+        "256": "images/icons/256x256.png"
+    },
+    "manifest_version": 2,
+    "minimum_chrome_version": "20",
+    "name": "Lazytube",
+    "permissions": [
+        "notifications",
+        "tabs",
+        "nativeMessaging",
+        "<all_urls>",
+        "contextMenus",
+        "unlimitedStorage",
+        "cookies",
+        "http://*/*",
+        "https://*/*",
+        "storage",
+        "webRequest",
+        "webRequestBlocking"
+    ],
+    "short_name": "Lazytube",
+    "version": "5.2.4",
+    "web_accessible_resources": [
+        "images/*"
+    ],
+    "content_security_policy": "script-src 'self' 'unsafe-eval';object-src 'self';"
+}
