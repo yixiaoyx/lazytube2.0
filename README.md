@@ -3,7 +3,7 @@ Made by Sijian Deng, Sijia Chen, Yi Xiao and David Zhou during Facebook Hackatho
 
 Lazytube is a handy tool that intends to pause and resume video/music playbackfor you when you leave or return to your computer. It uses OpenCV for face recognition and works best with a front camera.
 
-Version 2.0 is a Chrome extension specifically intended for Youtube playback. It uses Chrome Native Messaging API to let the Python script in Version 1.0 and the Chrome extension talk to each other.
+Version 2.0 is an improvement on [Version 1.0](https://github.com/yixiaoyx/lazytube1.0). It is a Chrome extension specifically intended for controlling Youtube playback. It uses Chrome Native Messaging API to let the Python script in Version 1.0 and the Chrome extension talk to each other.
 
 **System prerequisite:** 
 - OpenCV2;
