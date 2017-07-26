@@ -15,6 +15,6 @@ Version 2.0 is an improvement on [Version 1.0](https://github.com/yixiaoyx/lazyt
 - Wait a few seconds for the camera to start; if nothing happens, hit `Reload`;
 
 **New feature:**
-- If you manually pauses the video, it stays paused, i.e. your leaving and returning to seat will not toggle the video on;
+- If you manually pause the video, it stays paused, i.e. your leaving and returning to seat will not toggle the video on;
 - Try laughing wholeheartedly towards the camera ... It knows whether you are truly happy or not :)
 
